@@ -5,12 +5,15 @@ sudo apt-get update
 sudo apt-get install -y python3-requests
 
 # 2. Set Permissions for all Plugin Components
-# We target the specific scripts to ensure they can be executed by FPP
-PLUGIN_DIR="/home/fpp/media/plugins/fpp-santa-list"
+# Get the directory of the current script
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-chmod +x "${PLUGIN_DIR}/santa_worker.py"
-chmod +x "${PLUGIN_DIR}/scripts/fpp_start.sh"
-chmod +x "${PLUGIN_DIR}/scripts/uninstall.sh"
+# Force permissions so the buttons work
+chmod +x "${DIR}/fpp_uninstall.sh"
+chmod +x "${DIR}/fpp_start.sh"
+chmod +x "${DIR}/../santa_worker.py"
+
+echo "Permissions updated for Santa List scripts."
 
 # 3. Start the worker immediately so the user doesn't have to reboot
 # We check if it's already running first to avoid double-processes
