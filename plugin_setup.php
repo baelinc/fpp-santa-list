@@ -2,7 +2,7 @@
 $pluginName = "fpp-santa-list";
 $settingsFile = "/home/fpp/media/config/plugin.fpp-santa-list.json";
 
-// Handle Saving via PHP to bypass FPP API "Not Found" errors
+// Handle Saving
 if (isset($_POST['saveSettings'])) {
     $data = array(
         "api_url" => $_POST['api_url'],
@@ -10,19 +10,31 @@ if (isset($_POST['saveSettings'])) {
         "model_names" => $_POST['model_names'],
         "interval" => $_POST['interval']
     );
-    file_put_contents($settingsFile, json_encode($data, JSON_PRETTY_PRINT));
-    echo "SUCCESS";
+    
+    // Attempt to write the file
+    if (file_put_contents($settingsFile, json_encode($data, JSON_PRETTY_PRINT)) === false) {
+        $err = error_get_last();
+        echo "ERROR: " . $err['message'];
+    } else {
+        echo "SUCCESS";
+    }
     exit;
 }
 
-// Load existing settings
-$api_url = ""; $model_header = "Screen1"; $model_names = "Screen2"; $interval = "10";
+// Load settings for the form
+$api_url = "https://christmas.onthehill.us/wp-json/santa/v1/list"; 
+$model_header = "Screen1"; 
+$model_names = "Screen2"; 
+$interval = "10";
+
 if (file_exists($settingsFile)) {
     $cur = json_decode(file_get_contents($settingsFile), true);
-    $api_url = $cur['api_url'];
-    $model_header = $cur['model_header'];
-    $model_names = $cur['model_names'];
-    $interval = $cur['interval'];
+    if ($cur) {
+        $api_url = $cur['api_url'];
+        $model_header = $cur['model_header'];
+        $model_names = $cur['model_names'];
+        $interval = $cur['interval'];
+    }
 }
 ?>
 
@@ -35,10 +47,10 @@ if (file_exists($settingsFile)) {
             <tr><td class="settingLabel">Names Model:</td><td><input type="text" id="model_names" value="<?php echo $model_names; ?>"></td></tr>
             <tr><td class="settingLabel">Interval (s):</td><td><input type="number" id="interval" value="<?php echo $interval; ?>"></td></tr>
         </table>
-        <button type="button" class="buttons btn-success" onclick="SaveSantaSettings();">Save Settings</button>
-        <button type="button" class="buttons" onclick="TestConnection();">Test API</button>
+        <div style="margin-top:15px;">
+            <button type="button" class="buttons btn-success" onclick="SaveSantaSettings();">Save Settings</button>
+        </div>
     </fieldset>
-    <div id="test_status" style="margin-top:10px; font-family:monospace;"></div>
 </div>
 
 <script>
@@ -50,19 +62,17 @@ function SaveSantaSettings() {
         model_names: $("#model_names").val(),
         interval: $("#interval").val()
     };
+    
+    // We post back to this same file
     $.post(window.location.href, params, function(response) {
         if(response.trim() === "SUCCESS") {
-            $.jGrowl("Settings Saved Directly!", {theme: 'success'});
+            $.jGrowl("Settings Saved Successfully!", {theme: 'success'});
         } else {
-            alert("Save failed: " + response);
+            // This will now show the actual Linux error if it fails
+            alert("Save Failed: " + response);
         }
+    }).fail(function(xhr) {
+        alert("Server Error: " + xhr.statusText);
     });
-}
-
-function TestConnection() {
-    var url = $("#api_url").val();
-    $.getJSON(url, function(data) {
-        alert("Success! Found " + data.nice.length + " nice kids.");
-    }).fail(function() { alert("API Connection Failed."); });
 }
 </script>
