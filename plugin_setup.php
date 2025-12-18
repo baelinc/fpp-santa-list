@@ -1,56 +1,53 @@
 <?php
 $pluginName = "fpp-santa-list";
-$settingsFile = "/home/fpp/media/config/plugin.fpp-santa-list.json";
 
-// Handle Saving
+// Handle Saving via FPP System Command
 if (isset($_POST['saveSettings'])) {
-    $data = array(
-        "api_url" => $_POST['api_url'],
-        "model_header" => $_POST['model_header'],
-        "model_names" => $_POST['model_names'],
-        "interval" => $_POST['interval']
-    );
+    $api = $_POST['api_url'];
+    $h = $_POST['model_header'];
+    $n = $_POST['model_names'];
+    $i = $_POST['interval'];
+
+    // We use the FPP 'config' utility to save these to the FPP database
+    exec("/opt/fpp/bin/config set plugin.fpp-santa-list.api_url \"$api\"");
+    exec("/opt/fpp/bin/config set plugin.fpp-santa-list.model_header \"$h\"");
+    exec("/opt/fpp/bin/config set plugin.fpp-santa-list.model_names \"$n\"");
+    exec("/opt/fpp/bin/config set plugin.fpp-santa-list.interval \"$i\"");
     
-    // Attempt to write the file
-    if (file_put_contents($settingsFile, json_encode($data, JSON_PRETTY_PRINT)) === false) {
-        $err = error_get_last();
-        echo "ERROR: " . $err['message'];
-    } else {
-        echo "SUCCESS";
-    }
+    echo "SUCCESS";
     exit;
 }
 
-// Load settings for the form
-$api_url = "https://christmas.onthehill.us/wp-json/santa/v1/list"; 
-$model_header = "Screen1"; 
-$model_names = "Screen2"; 
-$interval = "10";
+// Load settings from FPP Database
+$api_url = exec("/opt/fpp/bin/config get plugin.fpp-santa-list.api_url");
+$model_header = exec("/opt/fpp/bin/config get plugin.fpp-santa-list.model_header");
+$model_names = exec("/opt/fpp/bin/config get plugin.fpp-santa-list.model_names");
+$interval = exec("/opt/fpp/bin/config get plugin.fpp-santa-list.interval");
 
-if (file_exists($settingsFile)) {
-    $cur = json_decode(file_get_contents($settingsFile), true);
-    if ($cur) {
-        $api_url = $cur['api_url'];
-        $model_header = $cur['model_header'];
-        $model_names = $cur['model_names'];
-        $interval = $cur['interval'];
-    }
-}
+// Set defaults if empty
+if (empty($api_url)) $api_url = "https://christmas.onthehill.us/wp-json/santa/v1/list";
+if (empty($model_header)) $model_header = "Screen1";
+if (empty($model_names)) $model_names = "Screen2";
+if (empty($interval)) $interval = "10";
 ?>
 
-<div id="fpp-santa-list" class="settings">
+<div id="santa_list_wrapper">
     <fieldset>
-        <legend>🎅 Santa's List Config</legend>
+        <legend>🎅 Santa's List Settings</legend>
         <table class="table">
-            <tr><td class="settingLabel">API URL:</td><td><input type="text" id="api_url" size="64" value="<?php echo $api_url; ?>"></td></tr>
-            <tr><td class="settingLabel">Header Model:</td><td><input type="text" id="model_header" value="<?php echo $model_header; ?>"></td></tr>
-            <tr><td class="settingLabel">Names Model:</td><td><input type="text" id="model_names" value="<?php echo $model_names; ?>"></td></tr>
-            <tr><td class="settingLabel">Interval (s):</td><td><input type="number" id="interval" value="<?php echo $interval; ?>"></td></tr>
+            <tr><td>API URL:</td><td><input type="text" id="api_url" size="64" value="<?php echo $api_url; ?>"></td></tr>
+            <tr><td>Header Model:</td><td><input type="text" id="model_header" value="<?php echo $model_header; ?>"></td></tr>
+            <tr><td>Names Model:</td><td><input type="text" id="model_names" value="<?php echo $model_names; ?>"></td></tr>
+            <tr><td>Interval (s):</td><td><input type="number" id="interval" value="<?php echo $interval; ?>"></td></tr>
         </table>
-        <div style="margin-top:15px;">
+        
+        <div style="margin-top:20px;">
             <button type="button" class="buttons btn-success" onclick="SaveSantaSettings();">Save Settings</button>
+            <button type="button" class="buttons" style="background:#165b33; color:white;" onclick="TestConnection();">⚡ Test Connection</button>
         </div>
     </fieldset>
+    
+    <div id="test_status" style="margin-top:15px; font-weight:bold; font-family:monospace;"></div>
 </div>
 
 <script>
@@ -62,17 +59,24 @@ function SaveSantaSettings() {
         model_names: $("#model_names").val(),
         interval: $("#interval").val()
     };
-    
-    // We post back to this same file
+
     $.post(window.location.href, params, function(response) {
         if(response.trim() === "SUCCESS") {
-            $.jGrowl("Settings Saved Successfully!", {theme: 'success'});
+            $.jGrowl("Settings Saved to FPP Database!", {theme: 'success'});
         } else {
-            // This will now show the actual Linux error if it fails
-            alert("Save Failed: " + response);
+            alert("Save Error: " + response);
         }
-    }).fail(function(xhr) {
-        alert("Server Error: " + xhr.statusText);
+    });
+}
+
+function TestConnection() {
+    var url = $("#api_url").val();
+    $("#test_status").text("Testing...");
+    
+    $.getJSON(url, function(data) {
+        $("#test_status").html("✅ Success! " + data.nice.length + " Nice / " + data.naughty.length + " Naughty");
+    }).fail(function() { 
+        $("#test_status").html("<span style='color:red;'>❌ API Connection Failed</span>"); 
     });
 }
 </script>
