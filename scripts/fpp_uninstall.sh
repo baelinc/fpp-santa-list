@@ -1,8 +1,6 @@
 #!/bin/bash
-echo "Stopping Santa Worker..."
 sudo pkill -f santa_worker.py
-
-echo "Cleaning up..."
+# Turn off the matrix models
+/opt/fpp/bin/fppmm -m Screen1 -o off
+/opt/fpp/bin/fppmm -m Screen2 -o off
 rm -f /home/fpp/media/config/plugin.fpp-santa-list.json
-
-echo "Uninstall complete."
