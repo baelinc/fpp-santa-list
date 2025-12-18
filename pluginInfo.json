@@ -1,16 +1,15 @@
 {
     "repoName": "fpp-santa-list",
     "name": "Santa's Naughty and Nice List",
-    "author": "Johnathan Evans",
+    "author": "Baelinc",
     "description": "Pulls real-time names from WordPress API to display on LED Matrix screens.",
-    "homeURL": "https://christmas.onthehill.us",
+    "homeURL": "https://github.com/baelinc/fpp-santa-list",
     "srcURL": "https://github.com/baelinc/fpp-santa-list.git",
-    "bugURL": "https://github.com/baelinc/fpp-santa-list/issues",
     "versions": [
         {
             "minFPPVersion": "4.0",
             "maxFPPVersion": "0",
-            "branch": "master",
+            "branch": "main",
             "sha": ""
         }
     ]
