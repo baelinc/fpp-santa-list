@@ -1,55 +1,73 @@
-#!/usr/bin/env python3
-import requests
-import time
-import subprocess
 import json
+import time
+import requests
+import subprocess
 import os
 
-SETTINGS_FILE = "/home/fpp/media/config/plugin.fpp-santa-list.json"
+# Path to the settings file we created in plugin_setup.php
+SETTINGS_FILE = '/home/fpp/media/config/plugin.fpp-santa-list.json'
 
-def get_settings():
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'r') as f:
-            return json.load(f)
-    return None
+def run_fppmm(model_name, command, value=""):
+    """Helper to send commands to FPP Memory Maps"""
+    try:
+        # Commands: 'on', 'off', 'set'
+        cmd = ["/opt/fpp/bin/fppmm", "-m", model_name, "-o", command]
+        if value:
+            cmd.append(value)
+        subprocess.run(cmd, check=True)
+    except Exception as e:
+        print(f"FPPMM Error: {e}")
 
-def update_fpp(model, text):
-    # -m: model name, -o on: turn on overlay, -t: text
-    # We don't use -s (scroll) so the text remains static
-    subprocess.run(["/opt/fpp/bin/fppmm", "-m", model, "-o", "on"])
-    subprocess.run(["/opt/fpp/bin/fppmm", "-m", model, "-t", text])
+def display_on_matrix(header_model, names_model, status, name):
+    """Updates the LED Matrix via FPP Memory Maps"""
+    # 1. Update Header (NICE/NAUGHTY)
+    # Note: 'set' command with fppmm requires the model to be in 'on' mode
+    run_fppmm(header_model, "on")
+    run_fppmm(header_model, "set", status.upper())
+
+    # 2. Update Name
+    run_fppmm(names_model, "on")
+    run_fppmm(names_model, "set", name.upper())
 
 def main():
-    last_processed_name = ""
+    print("Santa Worker Starting...")
     
     while True:
-        settings = get_settings()
-        if not settings or not settings.get('api_url'):
+        # Check if settings exist; if not, wait and retry
+        if not os.path.exists(SETTINGS_FILE):
+            print("Waiting for settings file...")
             time.sleep(10)
             continue
 
         try:
-            r = requests.get(settings['api_url'], timeout=5)
-            data = r.json()
-
-            # Determine which name to show (prioritize most recent from either list)
-            # This logic assumes 'nice' and 'naughty' come from your WP API
-            newest_nice = data['nice'][0] if data['nice'] else None
-            newest_naughty = data['naughty'][0] if data['naughty'] else None
+            with open(SETTINGS_FILE, 'r') as f:
+                config = json.load(f)
             
-            # Logic: Show the latest entry added to the system
-            # For simplicity, we alternate or just show Nice if available
-            if newest_nice:
-                update_fpp(settings['model_header'], "NICE")
-                update_fpp(settings['model_names'], newest_nice.upper())
-            elif newest_naughty:
-                update_fpp(settings['model_header'], "NAUGHTY")
-                update_fpp(settings['model_names'], newest_naughty.upper())
+            api_url = config.get('api_url')
+            model_header = config.get('model_header', 'Screen1')
+            model_names = config.get('model_names', 'Screen2')
+            interval = int(config.get('interval', 10))
+
+            # Fetch from WordPress
+            response = requests.get(api_url, timeout=5)
+            data = response.json()
+
+            # Logic: Prioritize Nice list, then Naughty
+            if data.get('nice'):
+                # Get the most recent name (assuming last in list or adjust as needed)
+                display_on_matrix(model_header, model_names, "NICE", data['nice'][0])
+            elif data.get('naughty'):
+                display_on_matrix(model_header, model_names, "NAUGHTY", data['naughty'][0])
+            else:
+                # Optional: Clear screens if lists are empty
+                run_fppmm(model_header, "off")
+                run_fppmm(model_names, "off")
 
         except Exception as e:
-            print(f"Santa API Error: {e}")
+            print(f"Worker Loop Error: {e}")
 
-        time.sleep(int(settings.get('interval', 10)))
+        # Sleep based on the user-defined interval
+        time.sleep(interval)
 
 if __name__ == "__main__":
     main()
