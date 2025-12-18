@@ -4,13 +4,14 @@
     "author": "Johnathan Evans",
     "description": "Pulls real-time names from WordPress API to display on LED Matrix screens.",
     "homeURL": "https://christmas.onthehill.us",
+    "srcURL": "https://github.com/baelinc/fpp-santa-list.git",
+    "bugURL": "https://github.com/baelinc/fpp-santa-list/issues",
     "versions": [
         {
             "minFPPVersion": "4.0",
             "maxFPPVersion": "0",
             "branch": "master",
-            "sha": "",
-            "allowUpdates": 1
+            "sha": ""
         }
     ]
 }
