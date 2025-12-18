@@ -7,10 +7,11 @@
     "srcURL": "https://github.com/baelinc/fpp-santa-list.git",
     "versions": [
         {
-            "minFPPVersion": "4.0",
-            "maxFPPVersion": "0",
-            "branch": "main",
-            "sha": ""
+			"minFPPVersion": "9.2",
+			"maxFPPVersion": "0",
+			"branch": "master",
+			"sha": ""
         }
     ]
 }
+
