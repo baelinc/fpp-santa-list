@@ -2,7 +2,7 @@
 include_once 'common.php';
 $pluginName = "fpp-santa-list";
 
-// Helper to get settings with defaults
+// Helper function to fetch saved settings from FPP's config file
 function getS($key, $default) {
     global $pluginSettings;
     return isset($pluginSettings[$key]) ? $pluginSettings[$key] : $default;
@@ -69,9 +69,15 @@ function getS($key, $default) {
                 </table>
             </fieldset>
 
-            <div style="margin-top:20px;">
-                <button class="buttons" onclick="TestAPI();">🔍 Test API Connection</button>
+            <div style="margin-top:20px; display: flex; align-items: center; gap: 10px;">
                 <button class="buttons btn-success" onclick="StartSantaService();">🚀 Start Service</button>
+                <button class="buttons btn-danger" onclick="StopSantaService();">🛑 Stop Service</button>
+                <div id="service_status" style="padding: 5px 15px; border-radius: 20px; background: #555; color: #fff; font-weight: bold; min-width: 120px; text-align: center;">
+                    Checking Status...
+                </div>
+            </div>
+            <div style="margin-top:10px;">
+                <button class="buttons" onclick="TestAPI();">🔍 Test API Connection</button>
             </div>
         </div>
 
@@ -97,13 +103,41 @@ function getS($key, $default) {
 </div>
 
 <script>
+// --- SERVICE MANAGEMENT ---
+
+function CheckServiceStatus() {
+    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1', function(data) {
+        if(data.running) {
+            $('#service_status').text('Status: RUNNING').css('background', '#28a745');
+        } else {
+            $('#service_status').text('Status: STOPPED').css('background', '#dc3545');
+        }
+    });
+}
+
+function StartSantaService() {
+    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/start_service.php&nopage=1', function() {
+        $.jGrowl("Santa Worker Process Started!", { theme: 'success' });
+        setTimeout(CheckServiceStatus, 1000);
+    });
+}
+
+function StopSantaService() {
+    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/stop_service.php&nopage=1', function() {
+        $.jGrowl("Santa Worker Stopped.");
+        setTimeout(CheckServiceStatus, 1000);
+    });
+}
+
+// --- API TESTING & PREVIEW ---
+
 function TestAPI() {
     var url = $('#wp_url').val();
     if(!url) { alert('Please enter your WordPress API URL first!'); return; }
     
-    $('#api_debug').text('FPP is contacting the North Pole... (Server-side proxy)');
+    $('#api_debug').text('FPP is contacting your website...');
     
-    // We call a small PHP script on FPP instead of calling your website directly
+    // Using the proxy script to avoid CORS browser issues
     $.ajax({
         url: 'plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/test_proxy.php&nopage=1&test_url=' + encodeURIComponent(url),
         type: 'GET',
@@ -113,7 +147,7 @@ function TestAPI() {
             UpdatePreview(data);
         },
         error: function(xhr) {
-            $('#api_debug').text('ERROR: FPP could not reach your website.\nThis usually means the URL is wrong or your FPP has no internet.');
+            $('#api_debug').text('ERROR: FPP could not reach your website.\nVerify the URL and ensure FPP has internet access.');
         }
     });
 }
@@ -129,7 +163,10 @@ function UpdatePreview(data) {
         let h_size = $('#header_font').val() + "px";
         let n_size = $('#names_font').val() + "px";
         let limit = parseInt($('#name_limit').val());
-        let names = data[type].slice(0, limit).join('\n');
+        
+        // Handle names list
+        let namesList = data[type] ? data[type].slice(0, limit) : [];
+        let names = namesList.join('\n');
         
         $('#v_header').text(type + ' list').css({'color': h_color, 'font-size': h_size});
         $('#v_names').text(names ? names : '(No names found)').css({'color': n_color, 'font-size': n_size});
@@ -142,10 +179,9 @@ function UpdatePreview(data) {
     window.previewInterval = setInterval(toggle, 3000);
 }
 
-function StartSantaService() {
-    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/start_service.php&nopage=1', function() {
-        $.jGrowl("Santa Worker Process Started!", { theme: 'success' });
-    });
-}
+// Start polling for status when page loads
+$(document).ready(function() {
+    CheckServiceStatus();
+    setInterval(CheckServiceStatus, 5000);
+});
 </script>
-
