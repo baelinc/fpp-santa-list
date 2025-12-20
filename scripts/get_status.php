@@ -1,20 +1,15 @@
 <?php
 header('Content-Type: application/json');
+header("Cache-Control: no-cache, must-revalidate"); // Extra layer to kill caching
 
-// pgrep -f looks for the pattern in the full command line
-// We use 'pgrep' because 'ps | grep' often catches itself, 
-// causing the "Always Running" bug you are seeing.
-exec("pgrep -f fpp_santa_worker.php", $pids);
+// This command looks for the process but excludes the 'grep' command itself
+// The [f] is a regex trick: it matches the letter 'f' but the process list 
+// will show 'grep [f]pp_santa_worker', which doesn't match the pattern '[f]pp_santa_worker'
+exec("ps aux | grep '[f]pp_santa_worker.php'", $output);
 
-// Filter out any potential empty strings and count
 $isRunning = false;
-if (!empty($pids)) {
-    foreach ($pids as $pid) {
-        if (is_numeric(trim($pid))) {
-            $isRunning = true;
-            break;
-        }
-    }
+if (count($output) > 0) {
+    $isRunning = true;
 }
 
 echo json_encode(['running' => $isRunning]);
