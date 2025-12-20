@@ -167,26 +167,52 @@ function getS($key, $default) {
 let rainbowHue = 0;
 let rainbowInterval = null;
 
-// NEW: Dynamic Matrix Loading
+// ROBUST: Dynamic Matrix Loading
 function LoadFPPModels() {
-    $.getJSON('/api/overlay/models', function(data) {
-        let headerSelect = $('#header_model');
-        let namesSelect = $('#names_model');
-        let currentHeader = "<?php echo getS('header_model', 'Matrix_Header'); ?>";
-        let currentNames = "<?php echo getS('names_model', 'Matrix_Names'); ?>";
-
-        headerSelect.empty();
-        namesSelect.empty();
-
-        if (data && data.length > 0) {
-            $.each(data, function(i, model) {
-                let name = model.Name || model.name;
-                headerSelect.append($('<option>', { value: name, text: name, selected: (name === currentHeader) }));
-                namesSelect.append($('<option>', { value: name, text: name, selected: (name === currentNames) }));
+    // Attempt the common plural endpoint first
+    $.ajax({
+        url: '/api/overlays/models',
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            populateDropdowns(data);
+        },
+        error: function() {
+            // Fallback for older versions
+            $.getJSON('/api/overlay/models', function(data) {
+                populateDropdowns(data);
+            }).fail(function() {
+                $.jGrowl("Error reaching FPP API for models.", { theme: 'danger' });
             });
-            $.jGrowl("Matrix models refreshed from FPP.", { theme: 'info' });
         }
     });
+}
+
+function populateDropdowns(data) {
+    let headerSelect = $('#header_model');
+    let namesSelect = $('#names_model');
+    let currentHeader = "<?php echo getS('header_model', 'Matrix_Header'); ?>";
+    let currentNames = "<?php echo getS('names_model', 'Matrix_Names'); ?>";
+
+    headerSelect.empty();
+    namesSelect.empty();
+
+    let models = Array.isArray(data) ? data : (data.models || []);
+
+    if (models.length > 0) {
+        $.each(models, function(i, model) {
+            let name = model.Name || model.name;
+            if (name) {
+                headerSelect.append($('<option>', { value: name, text: name, selected: (name === currentHeader) }));
+                namesSelect.append($('<option>', { value: name, text: name, selected: (name === currentNames) }));
+            }
+        });
+        $.jGrowl("Matrix models loaded.", { theme: 'info' });
+    } else {
+        // Fallback to saved settings if no API data found
+        headerSelect.append(new Option(currentHeader, currentHeader));
+        namesSelect.append(new Option(currentNames, currentNames));
+    }
 }
 
 function UpdatePreviewLayout() {
@@ -242,17 +268,15 @@ function StopSantaService() {
     });
 }
 
-// UPDATED: Functional Clear Logic
 function ClearPanels() {
     if(confirm("This will stop the service and clear the matrix panels. Continue?")) {
         StopSantaService();
-        // Send actual FPP commands to turn off models
         let h_model = $('#header_model').val();
         let n_model = $('#names_model').val();
         
-        // Clearing via REST API (State 0 = Disabled)
-        $.ajax({ url: '/api/overlay/model/' + h_model + '/state', type: 'PUT', data: JSON.stringify({"State": 0}) });
-        $.ajax({ url: '/api/overlay/model/' + n_model + '/state', type: 'PUT', data: JSON.stringify({"State": 0}) });
+        // Use the singular path revealed in your API check
+        $.ajax({ url: '/api/overlays/model/' + h_model + '/state', type: 'PUT', data: JSON.stringify({"State": 0}) });
+        $.ajax({ url: '/api/overlays/model/' + n_model + '/state', type: 'PUT', data: JSON.stringify({"State": 0}) });
         
         $.jGrowl("Matrix Panels Cleared.", { theme: 'info' });
     }
@@ -326,7 +350,7 @@ function UpdatePreview(data) {
 $(document).ready(function() {
     UpdatePreviewLayout();
     CheckServiceStatus();
-    LoadFPPModels(); // Initialize dropdowns on load
+    LoadFPPModels(); 
     setInterval(CheckServiceStatus, 5000);
 });
 </script>
