@@ -1,0 +1,16 @@
+{
+    "repoName": "fpp-santa-list",
+    "name": "Santa's Naughty and Nice List",
+    "author": "Johnathan Evans",
+    "description": "Displays live Naughty and Nice names from WordPress on FPP Matrix Models",
+    "homeURL": "https://github.com/baelinc/fpp-santa-list",
+    "srcURL": "https://github.com/baelinc/fpp-santa-list.git",
+    "allowUpdates": 1,
+    "versions": [
+        {
+            "minFPPVersion": "7.0",
+            "maxFPPVersion": "0",
+            "branch": "master"
+        }
+    ]
+}
