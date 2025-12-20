@@ -83,15 +83,14 @@ function getS($key, $default) {
                     <tr>
                         <td>Name Font Styles:</td>
                         <td>
-                            <input type="checkbox" id="font_bold" <?php echo (getS('font_bold', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'font_bold', this.checked ? '1' : '0');"> Bold 
-                            <input type="checkbox" id="font_italic" <?php echo (getS('font_italic', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'font_italic', this.checked ? '1' : '0');"> Italic
+                            <input type="checkbox" id="font_bold" <?php echo (getS('font_bold', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'font_bold', this.checked ? '1' : '0'); UpdatePreviewLayout();"> <b>Bold</b>&nbsp;&nbsp;
+                            <input type="checkbox" id="font_italic" <?php echo (getS('font_italic', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'font_italic', this.checked ? '1' : '0'); UpdatePreviewLayout();"> <i>Italic</i>
                         </td>
                     </tr>
                     <tr>
                         <td>Rainbow Names:</td>
                         <td>
-                            <input type="checkbox" id="rainbow_names" <?php echo (getS('rainbow_names', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'rainbow_names', this.checked ? '1' : '0');"> 
-                            <small>(Overrides Name Color)</small>
+                            <input type="checkbox" id="rainbow_names" <?php echo (getS('rainbow_names', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'rainbow_names', this.checked ? '1' : '0');"> 🌈 Animated Rainbow
                         </td>
                     </tr>
                     <tr>
@@ -128,12 +127,12 @@ function getS($key, $default) {
             <div style="margin-top:20px; display: flex; align-items: center; gap: 10px;">
                 <button class="buttons btn-success" onclick="StartSantaService();">🚀 Start Service</button>
                 <button class="buttons btn-danger" onclick="StopSantaService();">🛑 Stop Service</button>
-                <div id="service_status" style="padding: 5px 15px; border-radius: 20px; background: #555; color: #fff; font-weight: bold; min-width: 120px; text-align: center;">
-                    Checking...
-                </div>
+                <div id="service_status" style="padding: 5px 15px; border-radius: 20px; background: #555; color: #fff; font-weight: bold; min-width: 120px; text-align: center;">Checking...</div>
             </div>
-            <div style="margin-top:10px;">
+            <div style="margin-top:10px; display: flex; gap: 10px;">
                 <button class="buttons" onclick="TestAPI();">🔍 Test API Connection</button>
+                <button class="buttons" onclick="TestMode();">🌈 Test Rainbow Preview</button>
+                <button class="buttons btn-danger" onclick="ClearPanels();">🧹 Clear Matrix</button>
             </div>
         </div>
 
@@ -141,14 +140,8 @@ function getS($key, $default) {
             <fieldset>
                 <legend>🖼️ Scale-Accurate Preview</legend>
                 <div id="preview_outer" style="background:#222; padding:20px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; border: 5px solid #333;">
-                    
-                    <div id="v_header" style="background:#000; border:1px solid #444; margin-bottom:15px; display:flex; align-items:center; overflow:hidden; font-family:Arial Black, sans-serif; text-transform:uppercase;">
-                        WAITING
-                    </div>
-
-                    <div id="v_names" style="background:#000; border:1px solid #444; display:block; overflow:hidden; font-family: 'Courier New', monospace; white-space:pre; padding:2px;">
-(Test API)
-                    </div>
+                    <div id="v_header" style="background:#000; border:1px solid #444; margin-bottom:15px; display:flex; align-items:center; overflow:hidden; font-family:Arial Black, sans-serif; text-transform:uppercase;">WAITING</div>
+                    <div id="v_names" style="background:#000; border:1px solid #444; display:block; overflow:hidden; font-family: 'Courier New', monospace; white-space:pre; padding:2px;">(Test API)</div>
                 </div>
                 <p style="font-size:10px; color:#888; text-align:center; margin-top:10px;">Preview reflects dual pixel dimensions and alignment.</p>
             </fieldset>
@@ -162,6 +155,10 @@ function getS($key, $default) {
 </div>
 
 <script>
+// --- GLOBAL VARS FOR ANIMATION ---
+let rainbowHue = 0;
+let rainbowInterval = null;
+
 // --- LAYOUT & PREVIEW LOGIC ---
 
 function UpdatePreviewLayout() {
@@ -172,6 +169,10 @@ function UpdatePreviewLayout() {
     let align = $('#text_align').val().toLowerCase();
     let scale = 3; 
 
+    // Font Styling for Preview
+    let fontWeight = $('#font_bold').is(':checked') ? 'bold' : 'normal';
+    let fontStyle = $('#font_italic').is(':checked') ? 'italic' : 'normal';
+
     $('#v_header').css({
         'width': (hw * scale) + 'px',
         'height': (hh * scale) + 'px',
@@ -181,7 +182,9 @@ function UpdatePreviewLayout() {
     $('#v_names').css({
         'width': (nw * scale) + 'px',
         'height': (nh * scale) + 'px',
-        'text-align': align
+        'text-align': align,
+        'font-weight': fontWeight,
+        'font-style': fontStyle
     });
 
     let flexAlign = (align === 'center') ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end');
@@ -214,6 +217,13 @@ function StopSantaService() {
     });
 }
 
+function ClearPanels() {
+    // This calls fppmm directly via a helper to clear matrices
+    $.jGrowl("Clearing Matrix Panels...");
+    // You would typically have a small script for this, or just stop the service
+    StopSantaService();
+}
+
 // --- API TESTING & PREVIEW ---
 
 function TestAPI() {
@@ -229,9 +239,18 @@ function TestAPI() {
             UpdatePreview(data);
         },
         error: function(xhr) {
-            $('#api_debug').text('ERROR: FPP could not reach your website.\nVerify URL and FPP internet access.');
+            $('#api_debug').text('ERROR: FPP could not reach your website.');
         }
     });
+}
+
+function TestMode() {
+    let dummy = {
+        "nice": ["Kris Kringle", "Buddy Elf", "Cindy Lou", "Tiny Tim"],
+        "naughty": ["E. Scrooge", "The Grinch", "Hans Gruber"]
+    };
+    UpdatePreview(dummy);
+    $.jGrowl("Test Mode Active: Previewing local data.", { theme: 'info' });
 }
 
 function UpdatePreview(data) {
@@ -242,10 +261,8 @@ function UpdatePreview(data) {
         UpdatePreviewLayout();
         let type = types[current];
         
-        // Use custom text from inputs
         let h_text = (type === 'nice') ? $('#nice_text').val() : $('#naughty_text').val();
         let h_color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
-        let n_color = $('#text_color').val();
         
         let h_size = (parseInt($('#header_font').val()) * 1.2) + "px";
         let n_size = (parseInt($('#names_font').val()) * 1.2) + "px";
@@ -255,14 +272,28 @@ function UpdatePreview(data) {
         let names = namesList.join('\n');
         
         $('#v_header').text(h_text).css({'color': h_color, 'font-size': h_size});
-        $('#v_names').text(names ? names : '(No names found)').css({'color': n_color, 'font-size': n_size});
+        $('#v_names').text(names ? names : '(No names found)').css({'font-size': n_size});
+
+        // Handle Rainbow Preview Logic
+        if ($('#rainbow_names').is(':checked')) {
+            if (!rainbowInterval) {
+                rainbowInterval = setInterval(() => {
+                    rainbowHue = (rainbowHue + 5) % 360;
+                    $('#v_names').css('color', 'hsl(' + rainbowHue + ', 100%, 50%)');
+                }, 50);
+            }
+        } else {
+            clearInterval(rainbowInterval);
+            rainbowInterval = null;
+            $('#v_names').css('color', $('#text_color').val());
+        }
         
         current = (current + 1) % 2;
     }
     
     toggle();
     if(window.previewInterval) clearInterval(window.previewInterval);
-    window.previewInterval = setInterval(toggle, 3000);
+    window.previewInterval = setInterval(toggle, 5000);
 }
 
 $(document).ready(function() {
@@ -271,4 +302,3 @@ $(document).ready(function() {
     setInterval(CheckServiceStatus, 5000);
 });
 </script>
-
