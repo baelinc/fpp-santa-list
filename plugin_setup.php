@@ -81,6 +81,20 @@ function getS($key, $default) {
                         </td>
                     </tr>
                     <tr>
+                        <td>Name Font Styles:</td>
+                        <td>
+                            <input type="checkbox" id="font_bold" <?php echo (getS('font_bold', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'font_bold', this.checked ? '1' : '0');"> Bold 
+                            <input type="checkbox" id="font_italic" <?php echo (getS('font_italic', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'font_italic', this.checked ? '1' : '0');"> Italic
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Rainbow Names:</td>
+                        <td>
+                            <input type="checkbox" id="rainbow_names" <?php echo (getS('rainbow_names', '0') == '1') ? 'checked' : ''; ?> onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'rainbow_names', this.checked ? '1' : '0');"> 
+                            <small>(Overrides Name Color)</small>
+                        </td>
+                    </tr>
+                    <tr>
                         <td>Top Model:</td>
                         <td><input type="text" id="header_model" value="<?php echo getS('header_model', 'Matrix_Header'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);"></td>
                     </tr>
@@ -257,3 +271,4 @@ $(document).ready(function() {
     setInterval(CheckServiceStatus, 5000);
 });
 </script>
+
