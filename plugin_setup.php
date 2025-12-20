@@ -101,10 +101,11 @@ function TestAPI() {
     var url = $('#wp_url').val();
     if(!url) { alert('Please enter your WordPress API URL first!'); return; }
     
-    $('#api_debug').text('Contacting the North Pole...');
+    $('#api_debug').text('FPP is contacting the North Pole... (Server-side proxy)');
     
+    // We call a small PHP script on FPP instead of calling your website directly
     $.ajax({
-        url: url,
+        url: 'plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/test_proxy.php&nopage=1&test_url=' + encodeURIComponent(url),
         type: 'GET',
         dataType: 'json',
         success: function(data) {
@@ -112,7 +113,7 @@ function TestAPI() {
             UpdatePreview(data);
         },
         error: function(xhr) {
-            $('#api_debug').text('ERROR: API unreachable.\nStatus: ' + xhr.status + '\nCheck if your WordPress site is public and URL is correct.');
+            $('#api_debug').text('ERROR: FPP could not reach your website.\nThis usually means the URL is wrong or your FPP has no internet.');
         }
     });
 }
@@ -147,3 +148,4 @@ function StartSantaService() {
     });
 }
 </script>
+
