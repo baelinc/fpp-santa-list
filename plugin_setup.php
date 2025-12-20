@@ -94,12 +94,21 @@ function getS($key, $default) {
                         </td>
                     </tr>
                     <tr>
-                        <td>Top Model:</td>
-                        <td><input type="text" id="header_model" value="<?php echo getS('header_model', 'Matrix_Header'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);"></td>
+                        <td>Top Model (Matrix):</td>
+                        <td>
+                            <select id="header_model" style="width: 150px;" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);">
+                                <option value="<?php echo getS('header_model', 'Matrix_Header'); ?>"><?php echo getS('header_model', 'Matrix_Header'); ?></option>
+                            </select>
+                            <button class="buttons btn-mini" title="Refresh Models" onclick="LoadFPPModels();">🔄</button>
+                        </td>
                     </tr>
                     <tr>
-                        <td>Bottom Model:</td>
-                        <td><input type="text" id="names_model" value="<?php echo getS('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></td>
+                        <td>Bottom Model (Matrix):</td>
+                        <td>
+                            <select id="names_model" style="width: 150px;" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);">
+                                <option value="<?php echo getS('names_model', 'Matrix_Names'); ?>"><?php echo getS('names_model', 'Matrix_Names'); ?></option>
+                            </select>
+                        </td>
                     </tr>
                     <tr>
                         <td>Header Font Size:</td>
@@ -155,11 +164,30 @@ function getS($key, $default) {
 </div>
 
 <script>
-// --- GLOBAL VARS FOR ANIMATION ---
 let rainbowHue = 0;
 let rainbowInterval = null;
 
-// --- LAYOUT & PREVIEW LOGIC ---
+// NEW: Dynamic Matrix Loading
+function LoadFPPModels() {
+    $.getJSON('/api/overlay/models', function(data) {
+        let headerSelect = $('#header_model');
+        let namesSelect = $('#names_model');
+        let currentHeader = "<?php echo getS('header_model', 'Matrix_Header'); ?>";
+        let currentNames = "<?php echo getS('names_model', 'Matrix_Names'); ?>";
+
+        headerSelect.empty();
+        namesSelect.empty();
+
+        if (data && data.length > 0) {
+            $.each(data, function(i, model) {
+                let name = model.Name || model.name;
+                headerSelect.append($('<option>', { value: name, text: name, selected: (name === currentHeader) }));
+                namesSelect.append($('<option>', { value: name, text: name, selected: (name === currentNames) }));
+            });
+            $.jGrowl("Matrix models refreshed from FPP.", { theme: 'info' });
+        }
+    });
+}
 
 function UpdatePreviewLayout() {
     let hw = parseInt($('#h_width').val()) || 64;
@@ -169,7 +197,6 @@ function UpdatePreviewLayout() {
     let align = $('#text_align').val().toLowerCase();
     let scale = 3; 
 
-    // Font Styling for Preview
     let fontWeight = $('#font_bold').is(':checked') ? 'bold' : 'normal';
     let fontStyle = $('#font_italic').is(':checked') ? 'italic' : 'normal';
 
@@ -190,8 +217,6 @@ function UpdatePreviewLayout() {
     let flexAlign = (align === 'center') ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end');
     $('#v_header').css('justify-content', flexAlign);
 }
-
-// --- SERVICE MANAGEMENT ---
 
 function CheckServiceStatus() {
     $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1', function(data) {
@@ -217,14 +242,21 @@ function StopSantaService() {
     });
 }
 
+// UPDATED: Functional Clear Logic
 function ClearPanels() {
-    // This calls fppmm directly via a helper to clear matrices
-    $.jGrowl("Clearing Matrix Panels...");
-    // You would typically have a small script for this, or just stop the service
-    StopSantaService();
+    if(confirm("This will stop the service and clear the matrix panels. Continue?")) {
+        StopSantaService();
+        // Send actual FPP commands to turn off models
+        let h_model = $('#header_model').val();
+        let n_model = $('#names_model').val();
+        
+        // Clearing via REST API (State 0 = Disabled)
+        $.ajax({ url: '/api/overlay/model/' + h_model + '/state', type: 'PUT', data: JSON.stringify({"State": 0}) });
+        $.ajax({ url: '/api/overlay/model/' + n_model + '/state', type: 'PUT', data: JSON.stringify({"State": 0}) });
+        
+        $.jGrowl("Matrix Panels Cleared.", { theme: 'info' });
+    }
 }
-
-// --- API TESTING & PREVIEW ---
 
 function TestAPI() {
     var url = $('#wp_url').val();
@@ -260,21 +292,17 @@ function UpdatePreview(data) {
     function toggle() {
         UpdatePreviewLayout();
         let type = types[current];
-        
         let h_text = (type === 'nice') ? $('#nice_text').val() : $('#naughty_text').val();
         let h_color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
-        
         let h_size = (parseInt($('#header_font').val()) * 1.2) + "px";
         let n_size = (parseInt($('#names_font').val()) * 1.2) + "px";
         let limit = parseInt($('#name_limit').val());
-        
         let namesList = data[type] ? data[type].slice(0, limit) : [];
         let names = namesList.join('\n');
         
         $('#v_header').text(h_text).css({'color': h_color, 'font-size': h_size});
         $('#v_names').text(names ? names : '(No names found)').css({'font-size': n_size});
 
-        // Handle Rainbow Preview Logic
         if ($('#rainbow_names').is(':checked')) {
             if (!rainbowInterval) {
                 rainbowInterval = setInterval(() => {
@@ -287,7 +315,6 @@ function UpdatePreview(data) {
             rainbowInterval = null;
             $('#v_names').css('color', $('#text_color').val());
         }
-        
         current = (current + 1) % 2;
     }
     
@@ -299,6 +326,7 @@ function UpdatePreview(data) {
 $(document).ready(function() {
     UpdatePreviewLayout();
     CheckServiceStatus();
+    LoadFPPModels(); // Initialize dropdowns on load
     setInterval(CheckServiceStatus, 5000);
 });
 </script>
