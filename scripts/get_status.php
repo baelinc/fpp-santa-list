@@ -1,8 +1,9 @@
 <?php
-// scripts/get_status.php
-// Check if the worker script is currently running
-$running = exec("pgrep -f fpp_santa_worker.php");
-
 header('Content-Type: application/json');
-echo json_encode(['running' => !empty($running)]);
+// Search for the santa_worker.php process
+exec("ps aux | grep santa_worker.php | grep -v grep", $output);
+
+$isRunning = (count($output) > 0);
+
+echo json_encode(['running' => $isRunning]);
 ?>
