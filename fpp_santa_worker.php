@@ -1,42 +1,32 @@
 <?php
-// Load FPP helper functions
+// This script should run in a loop or via Cron
 include_once 'common.php';
 
-// 1. Get User Settings from FPP
-$wp_url = "https://yourdomain.com/wp-json/santa/v1/list"; 
-$limit = 6; // How many names to show
-$header_model = "Matrix_Header";
-$names_model = "Matrix_Names";
+$wp_url = "YOUR_API_URL_HERE"; 
+$limit = 6; 
 
-// 2. Fetch WordPress Data
-$response = file_get_contents($wp_url);
-$data = json_decode($response, true);
+while(true) {
+    $response = file_get_contents($wp_url);
+    $data = json_decode($response, true);
 
-if (!$data) exit;
+    if ($data) {
+        foreach (['nice', 'naughty'] as $type) {
+            // Get the newest names based on your limit
+            $list = array_slice($data[$type], 0, $limit); 
+            $header_text = strtoupper($type) . " LIST";
+            $h_color = ($type == 'nice') ? "#00FF00" : "#FF0000";
 
-/**
- * Display Logic
- * We iterate through categories, showing the newest names first
- */
-foreach (['nice', 'naughty'] as $type) {
-    // Get newest names by taking the END of the array (since WP returns DESC)
-    $list = array_slice($data[$type], 0, $limit); 
-    $header_text = ucfirst($type) . " List";
-    $header_color = ($type == 'nice') ? "#00FF00" : "#FF0000";
-    
-    // Clear Models first
-    exec("/usr/bin/fppmm -m $header_model -o off");
-    exec("/usr/bin/fppmm -m $names_model -o off");
+            // 1. Update Top Screen (Header)
+            // -s: font size, -p: position (Center), -t: text
+            exec("fppmm -m Matrix_Header -o on -c '$h_color' -s 18 -p Center -t '$header_text'");
 
-    // Push Header (Top Screen)
-    // fppmm parameters: model, on/off, color, font size, position, scroll, text
-    $cmd_header = "fppmm -m $header_model -o on -c '$header_color' -n 'Arial' -s 18 -p 'Center' -t '$header_text'";
-    exec($cmd_header);
+            // 2. Update Bottom Screen (Static List)
+            // implode with \n creates the vertical stack from your image
+            $names_block = implode("\n", $list);
+            exec("fppmm -m Matrix_Names -o on -c '#FFFFFF' -s 12 -p TopLeft -t '$names_block'");
 
-    // Push Names (Bottom Screen)
-    $names_string = implode("\n", $list);
-    $cmd_names = "fppmm -m $names_model -o on -c '#FFFFFF' -n 'Arial' -s 12 -p 'TopLeft' -t '$names_string'";
-    exec($cmd_names);
-
-    sleep(10); // Show each list for 10 seconds
+            sleep(10); // Display this list for 10 seconds before switching
+        }
+    }
+    sleep(2); // Short pause before next API check
 }
