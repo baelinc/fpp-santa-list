@@ -36,15 +36,25 @@ function getS($key, $default) {
             </fieldset>
 
             <fieldset style="margin-top:15px;">
-                <legend>📐 Matrix Physical Dimensions (Pixels)</legend>
+                <legend>📐 Matrix Dimensions (Pixels)</legend>
                 <table cellspacing="5" cellpadding="5" style="width:100%;">
+                    <tr style="border-bottom: 1px solid #444;"><td colspan="2"><b>Top (Header) Panel</b></td></tr>
                     <tr>
-                        <td>Panel Width:</td>
-                        <td><input type="number" id="matrix_width" value="<?php echo getS('matrix_width', '64'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'matrix_width', this.value); UpdatePreviewLayout();"></td>
+                        <td>Width:</td>
+                        <td><input type="number" id="h_width" value="<?php echo getS('h_width', '64'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'h_width', this.value); UpdatePreviewLayout();"></td>
                     </tr>
                     <tr>
-                        <td>Panel Height:</td>
-                        <td><input type="number" id="matrix_height" value="<?php echo getS('matrix_height', '32'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'matrix_height', this.value); UpdatePreviewLayout();"></td>
+                        <td>Height:</td>
+                        <td><input type="number" id="h_height" value="<?php echo getS('h_height', '32'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'h_height', this.value); UpdatePreviewLayout();"></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;"><td colspan="2"><b>Bottom (Names) Panel</b></td></tr>
+                    <tr>
+                        <td>Width:</td>
+                        <td><input type="number" id="n_width" value="<?php echo getS('n_width', '64'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'n_width', this.value); UpdatePreviewLayout();"></td>
+                    </tr>
+                    <tr>
+                        <td>Height:</td>
+                        <td><input type="number" id="n_height" value="<?php echo getS('n_height', '64'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'n_height', this.value); UpdatePreviewLayout();"></td>
                     </tr>
                 </table>
             </fieldset>
@@ -118,7 +128,7 @@ function getS($key, $default) {
 (Test API)
                     </div>
                 </div>
-                <p style="font-size:10px; color:#888; text-align:center; margin-top:10px;">Preview reflects pixel dimensions and alignment.</p>
+                <p style="font-size:10px; color:#888; text-align:center; margin-top:10px;">Preview reflects dual pixel dimensions and alignment.</p>
             </fieldset>
 
             <fieldset style="margin-top:15px;">
@@ -133,17 +143,30 @@ function getS($key, $default) {
 // --- LAYOUT & PREVIEW LOGIC ---
 
 function UpdatePreviewLayout() {
-    let w = parseInt($('#matrix_width').val()) || 64;
-    let h = parseInt($('#matrix_height').val()) || 32;
+    // Top Panel Dimensions
+    let hw = parseInt($('#h_width').val()) || 64;
+    let hh = parseInt($('#h_height').val()) || 32;
+    
+    // Bottom Panel Dimensions
+    let nw = parseInt($('#n_width').val()) || 64;
+    let nh = parseInt($('#n_height').val()) || 64;
+
     let align = $('#text_align').val().toLowerCase();
     
-    // Scale multiplier to make it visible on web UI (e.g., 3x actual pixel size)
-    let scale = 4; 
+    // Scale multiplier to make it visible on web UI
+    let scale = 3; 
 
-    // Apply Dimensions
-    $('#v_header, #v_names').css({
-        'width': (w * scale) + 'px',
-        'height': (h * scale) + 'px',
+    // Apply Dimensions to Top
+    $('#v_header').css({
+        'width': (hw * scale) + 'px',
+        'height': (hh * scale) + 'px',
+        'text-align': align
+    });
+
+    // Apply Dimensions to Bottom
+    $('#v_names').css({
+        'width': (nw * scale) + 'px',
+        'height': (nh * scale) + 'px',
         'text-align': align
     });
 
@@ -210,9 +233,8 @@ function UpdatePreview(data) {
         let h_color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
         let n_color = $('#text_color').val();
         
-        // We scale the UI font slightly to match the pixel look
-        let h_size = (parseInt($('#header_font').val()) * 1.5) + "px";
-        let n_size = (parseInt($('#names_font').val()) * 1.5) + "px";
+        let h_size = (parseInt($('#header_font').val()) * 1.2) + "px";
+        let n_size = (parseInt($('#names_font').val()) * 1.2) + "px";
         let limit = parseInt($('#name_limit').val());
         
         let namesList = data[type] ? data[type].slice(0, limit) : [];
