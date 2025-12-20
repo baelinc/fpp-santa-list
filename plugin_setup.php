@@ -1,32 +1,33 @@
 <?php
 include_once 'common.php';
 $pluginName = "fpp-santa-list";
-// Fetch saved settings or use defaults
-$wp_url = isset($pluginSettings['wp_url']) ? $pluginSettings['wp_url'] : "";
-$name_limit = isset($pluginSettings['name_limit']) ? $pluginSettings['name_limit'] : "6";
-$header_font = isset($pluginSettings['header_font']) ? $pluginSettings['header_font'] : "18";
-$names_font = isset($pluginSettings['names_font']) ? $pluginSettings['names_font'] : "12";
+
+// Helper to get settings with defaults
+function getSetting($key, $default) {
+    global $pluginSettings;
+    return isset($pluginSettings[$key]) ? $pluginSettings[$key] : $default;
+}
 ?>
 <div id="santa_list" class="settings">
     <fieldset>
         <legend>Santa's List Configuration</legend>
-        <table cellspacing="5" cellpadding="5">
-            <tr><td>WordPress API URL:</td><td><input type="text" id="wp_url" size="60" value="<?php echo $wp_url; ?>"></td></tr>
-            <tr><td>Names to Show:</td><td><input type="number" id="name_limit" value="<?php echo $name_limit; ?>"></td></tr>
-        </table>
+        <p>WordPress API URL: <input type="text" id="wp_url" size="50" value="<?php echo getSetting('wp_url', ''); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'wp_url', this.value);"></p>
+        <p>API Sync Interval (Seconds): <input type="number" id="sync_interval" value="<?php echo getSetting('sync_interval', '60'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'sync_interval', this.value);"></p>
+        <p>List Flip Speed (Seconds): <input type="number" id="flip_speed" value="<?php echo getSetting('flip_speed', '10'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'flip_speed', this.value);"></p>
+        <p>Names to Show: <input type="number" id="name_limit" value="<?php echo getSetting('name_limit', '6'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'name_limit', this.value);"></p>
         <hr>
-        <h3>Matrix Overlay Models</h3>
-        <table cellspacing="5" cellpadding="5">
-            <tr><td>Header Model (Top):</td><td><input type="text" id="header_model" value="Matrix_Header"></td></tr>
-            <tr><td>Names Model (Bottom):</td><td><input type="text" id="names_model" value="Matrix_Names"></td></tr>
-        </table>
-        <hr>
-        <h3>Appearance</h3>
-        <table cellspacing="5" cellpadding="5">
-            <tr><td>Header Font Size:</td><td><input type="number" id="header_font" value="<?php echo $header_font; ?>"></td></tr>
-            <tr><td>Names Font Size:</td><td><input type="number" id="names_font" value="<?php echo $names_font; ?>"></td></tr>
-            <tr><td>Nice List Color:</td><td><input type="color" id="nice_color" value="#00FF00"></td></tr>
-            <tr><td>Naughty List Color:</td><td><input type="color" id="naughty_color" value="#FF0000"></td></tr>
-        </table>
+        <h3>Matrix Models</h3>
+        <p>Top Model (Header): <input type="text" id="header_model" value="<?php echo getSetting('header_model', 'Matrix_Header'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);"></p>
+        <p>Bottom Model (Names): <input type="text" id="names_model" value="<?php echo getSetting('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></p>
     </fieldset>
+    <br>
+    <button class="buttons" onclick="StartSantaService();">Start/Restart Santa Service</button>
 </div>
+
+<script>
+function StartSantaService() {
+    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/start_service.php&nopage=1', function(data) {
+        $.jGrowl("Santa Service Started!");
+    });
+}
+</script>
