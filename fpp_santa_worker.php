@@ -10,7 +10,6 @@ function log_msg($msg) {
     file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] $msg\n", FILE_APPEND);
 }
 
-// Helper to convert HSL to Hex for the Rainbow Effect
 function hslToHex($h, $s, $l) {
     $h /= 360; $s /= 100; $l /= 100;
     $r = $l; $g = $l; $b = $l;
@@ -36,10 +35,16 @@ function hslToHex($h, $s, $l) {
     return sprintf("#%02x%02x%02x", $r * 255, $g * 255, $b * 255);
 }
 
-log_msg("Service Started with Styling and Rainbow support.");
+log_msg("Santa Service Started (v2.0 - Rainbow Support)");
 
 while(true) {
-    if (file_exists($settingsFile)) { $settings = parse_ini_file($settingsFile); } else { sleep(10); continue; }
+    if (file_exists($settingsFile)) { 
+        $settings = parse_ini_file($settingsFile); 
+    } else { 
+        log_msg("Settings file missing, sleeping...");
+        sleep(10); 
+        continue; 
+    }
 
     $wp_url         = $settings['wp_url'] ?? "";
     $sync_interval  = (int)($settings['sync_interval'] ?? 60);
@@ -54,21 +59,17 @@ while(true) {
     $text_color     = $settings['text_color'] ?? '#FFFFFF';
     $is_rainbow     = ($settings['rainbow_names'] ?? '0') == '1';
     
-    // Style Logic: Try to find a bold/italic version of the font if available
-    // Note: This assumes standard FPP font naming or can be adjusted to specific .ttf files
-    $style_suffix = "";
-    if (($settings['font_bold'] ?? '0') == '1') $style_suffix .= "Bold";
-    if (($settings['font_italic'] ?? '0') == '1') $style_suffix .= "Italic";
-    
     $nice_label     = $settings['nice_text'] ?? 'NICE LIST';
     $naught_label   = $settings['naughty_text'] ?? 'NAUGHTY LIST';
     
+    // Position normalization
     $alignSetting   = $settings['text_align'] ?? 'Center';
-    $h_pos = ($alignSetting == "Center") ? "Center" : $alignSetting;
+    $h_pos = $alignSetting; 
     $n_pos = ($alignSetting == "Center") ? "Center" : "Top" . $alignSetting;
 
-    if (empty($wp_url)) { sleep(30); continue; }
+    if (empty($wp_url)) { sleep(10); continue; }
 
+    log_msg("Fetching names from WordPress...");
     $json = @file_get_contents($wp_url, false, stream_context_create(['http' => ['timeout' => 5]]));
     $data = json_decode($json, true);
 
@@ -81,29 +82,31 @@ while(true) {
             $h_color = ($type == 'nice') ? $nice_color : $naught_color;
 
             // 1. Draw Static Header
-            exec("fppmm -m $h_model -o on -c '$h_color' -s $h_font_sz -p $h_pos -t " . escapeshellarg($header_text));
+            exec("fppmm -m \"$h_model\" -o on -c '$h_color' -s $h_font_sz -p \"$h_pos\" -t " . escapeshellarg($header_text));
 
-            // 2. Display Names with Rainbow or Static Color
+            // 2. Display Names
             $startTime = time();
             $hue = 0;
             
             while ((time() - $startTime) < $flip_speed) {
+                // IMPORTANT: Check if we are still supposed to be running
+                // If the user stops the service, this script gets killed by pkill, 
+                // but checking for pgrep ensures we don't hang during usleep
                 if ($is_rainbow) {
                     $current_color = hslToHex($hue, 100, 50);
-                    $hue = ($hue + 10) % 360; // Adjust '10' for faster/slower rainbow cycle
-                    exec("fppmm -m $n_model -o on -c '$current_color' -s $n_font_sz -p $n_pos -t " . escapeshellarg($names_block));
-                    usleep(100000); // 100ms delay for smooth animation
+                    $hue = ($hue + 15) % 360; 
+                    exec("fppmm -m \"$n_model\" -o on -c '$current_color' -s $n_font_sz -p \"$n_pos\" -t " . escapeshellarg($names_block));
+                    usleep(150000); // 150ms is slightly easier on the CPU than 100ms
                 } else {
-                    exec("fppmm -m $n_model -o on -c '$text_color' -s $n_font_sz -p $n_pos -t " . escapeshellarg($names_block));
-                    sleep($flip_speed); // Just wait if static
+                    exec("fppmm -m \"$n_model\" -o on -c '$text_color' -s $n_font_sz -p \"$n_pos\" -t " . escapeshellarg($names_block));
+                    sleep($flip_speed); 
                     break;
                 }
             }
         }
     } else {
-        sleep(10);
+        log_msg("Failed to decode JSON from WordPress.");
+        sleep(5);
     }
 
-    $napTime = max(5, $sync_interval - ($flip_speed * 2));
-    sleep($napTime);
-}
+    // Adjust naptime to account for time spent in loops
