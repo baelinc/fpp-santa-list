@@ -12,7 +12,7 @@ function getS($key, $default) {
 <div id="santa_list" class="settings">
     <div style="display: flex; gap: 20px; flex-wrap: wrap;">
         
-        <div style="flex: 1; min-width: 400px;">
+        <div style="flex: 1; min-width: 450px;">
             <fieldset>
                 <legend>🎅 Santa's Workshop Settings</legend>
                 <table cellspacing="5" cellpadding="5" style="width:100%;">
@@ -36,7 +36,21 @@ function getS($key, $default) {
             </fieldset>
 
             <fieldset style="margin-top:15px;">
-                <legend>🎨 Appearance & Models</legend>
+                <legend>📐 Matrix Physical Dimensions (Pixels)</legend>
+                <table cellspacing="5" cellpadding="5" style="width:100%;">
+                    <tr>
+                        <td>Panel Width:</td>
+                        <td><input type="number" id="matrix_width" value="<?php echo getS('matrix_width', '64'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'matrix_width', this.value); UpdatePreviewLayout();"></td>
+                    </tr>
+                    <tr>
+                        <td>Panel Height:</td>
+                        <td><input type="number" id="matrix_height" value="<?php echo getS('matrix_height', '32'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'matrix_height', this.value); UpdatePreviewLayout();"></td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <fieldset style="margin-top:15px;">
+                <legend>🎨 Appearance & Alignment</legend>
                 <table cellspacing="5" cellpadding="5" style="width:100%;">
                     <tr>
                         <td>Top Model:</td>
@@ -45,6 +59,16 @@ function getS($key, $default) {
                     <tr>
                         <td>Bottom Model:</td>
                         <td><input type="text" id="names_model" value="<?php echo getS('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Text Alignment:</td>
+                        <td>
+                            <select id="text_align" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'text_align', this.value); UpdatePreviewLayout();">
+                                <option value="Center" <?php echo (getS('text_align', 'Center') == 'Center') ? 'selected' : ''; ?>>Center</option>
+                                <option value="Left" <?php echo (getS('text_align', 'Center') == 'Left') ? 'selected' : ''; ?>>Left</option>
+                                <option value="Right" <?php echo (getS('text_align', 'Center') == 'Right') ? 'selected' : ''; ?>>Right</option>
+                            </select>
+                        </td>
                     </tr>
                     <tr>
                         <td>Header Font Size:</td>
@@ -73,7 +97,7 @@ function getS($key, $default) {
                 <button class="buttons btn-success" onclick="StartSantaService();">🚀 Start Service</button>
                 <button class="buttons btn-danger" onclick="StopSantaService();">🛑 Stop Service</button>
                 <div id="service_status" style="padding: 5px 15px; border-radius: 20px; background: #555; color: #fff; font-weight: bold; min-width: 120px; text-align: center;">
-                    Checking Status...
+                    Checking...
                 </div>
             </div>
             <div style="margin-top:10px;">
@@ -83,15 +107,18 @@ function getS($key, $default) {
 
         <div style="flex: 1; min-width: 350px;">
             <fieldset>
-                <legend>🖼️ Virtual Prop Preview</legend>
-                <div id="virtual_prop" style="background:#111; padding:30px; border-radius:10px; text-align:center; border: 8px solid #222;">
-                    <div id="v_header" style="background:#000; width:220px; height:45px; margin:0 auto 15px; border:2px solid #333; color:#0f0; display:flex; align-items:center; justify-content:center; font-family:Arial Black, Gadget, sans-serif; font-size:16px; text-transform:uppercase;">
+                <legend>🖼️ Scale-Accurate Preview</legend>
+                <div id="preview_outer" style="background:#222; padding:20px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; border: 5px solid #333;">
+                    
+                    <div id="v_header" style="background:#000; border:1px solid #444; margin-bottom:15px; display:flex; align-items:center; overflow:hidden; font-family:Arial Black, sans-serif; text-transform:uppercase;">
                         WAITING
                     </div>
-                    <div id="v_names" style="background:#000; width:220px; height:140px; margin:0 auto; border:2px solid #333; color:#fff; padding:10px; font-family: 'Courier New', Courier, monospace; font-size:14px; text-align:left; white-space:pre; line-height:1.2;">
-(Test API to preview)
+
+                    <div id="v_names" style="background:#000; border:1px solid #444; display:block; overflow:hidden; font-family: 'Courier New', monospace; white-space:pre; padding:2px;">
+(Test API)
                     </div>
                 </div>
+                <p style="font-size:10px; color:#888; text-align:center; margin-top:10px;">Preview reflects pixel dimensions and alignment.</p>
             </fieldset>
 
             <fieldset style="margin-top:15px;">
@@ -103,14 +130,36 @@ function getS($key, $default) {
 </div>
 
 <script>
+// --- LAYOUT & PREVIEW LOGIC ---
+
+function UpdatePreviewLayout() {
+    let w = parseInt($('#matrix_width').val()) || 64;
+    let h = parseInt($('#matrix_height').val()) || 32;
+    let align = $('#text_align').val().toLowerCase();
+    
+    // Scale multiplier to make it visible on web UI (e.g., 3x actual pixel size)
+    let scale = 4; 
+
+    // Apply Dimensions
+    $('#v_header, #v_names').css({
+        'width': (w * scale) + 'px',
+        'height': (h * scale) + 'px',
+        'text-align': align
+    });
+
+    // Handle Flex Alignment for the Header (Vertical Center)
+    let flexAlign = (align === 'center') ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end');
+    $('#v_header').css('justify-content', flexAlign);
+}
+
 // --- SERVICE MANAGEMENT ---
 
 function CheckServiceStatus() {
     $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1', function(data) {
         if(data.running) {
-            $('#service_status').text('Status: RUNNING').css('background', '#28a745');
+            $('#service_status').text('RUNNING').css('background', '#28a745');
         } else {
-            $('#service_status').text('Status: STOPPED').css('background', '#dc3545');
+            $('#service_status').text('STOPPED').css('background', '#dc3545');
         }
     });
 }
@@ -137,7 +186,6 @@ function TestAPI() {
     
     $('#api_debug').text('FPP is contacting your website...');
     
-    // Using the proxy script to avoid CORS browser issues
     $.ajax({
         url: 'plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/test_proxy.php&nopage=1&test_url=' + encodeURIComponent(url),
         type: 'GET',
@@ -147,7 +195,7 @@ function TestAPI() {
             UpdatePreview(data);
         },
         error: function(xhr) {
-            $('#api_debug').text('ERROR: FPP could not reach your website.\nVerify the URL and ensure FPP has internet access.');
+            $('#api_debug').text('ERROR: FPP could not reach your website.\nVerify URL and FPP internet access.');
         }
     });
 }
@@ -157,14 +205,16 @@ function UpdatePreview(data) {
     let current = 0;
     
     function toggle() {
+        UpdatePreviewLayout();
         let type = types[current];
         let h_color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
         let n_color = $('#text_color').val();
-        let h_size = $('#header_font').val() + "px";
-        let n_size = $('#names_font').val() + "px";
+        
+        // We scale the UI font slightly to match the pixel look
+        let h_size = (parseInt($('#header_font').val()) * 1.5) + "px";
+        let n_size = (parseInt($('#names_font').val()) * 1.5) + "px";
         let limit = parseInt($('#name_limit').val());
         
-        // Handle names list
         let namesList = data[type] ? data[type].slice(0, limit) : [];
         let names = namesList.join('\n');
         
@@ -179,8 +229,8 @@ function UpdatePreview(data) {
     window.previewInterval = setInterval(toggle, 3000);
 }
 
-// Start polling for status when page loads
 $(document).ready(function() {
+    UpdatePreviewLayout();
     CheckServiceStatus();
     setInterval(CheckServiceStatus, 5000);
 });
