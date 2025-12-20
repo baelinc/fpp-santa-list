@@ -47,12 +47,24 @@ function getS($key, $default) {
                         <td><input type="text" id="names_model" value="<?php echo getS('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></td>
                     </tr>
                     <tr>
+                        <td>Header Font Size:</td>
+                        <td><input type="number" id="header_font" value="<?php echo getS('header_font', '18'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_font', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Names Font Size:</td>
+                        <td><input type="number" id="names_font" value="<?php echo getS('names_font', '12'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_font', this.value);"></td>
+                    </tr>
+                    <tr>
                         <td>Nice Color:</td>
                         <td><input type="color" id="nice_color" value="<?php echo getS('nice_color', '#00FF00'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'nice_color', this.value);"></td>
                     </tr>
                     <tr>
                         <td>Naughty Color:</td>
                         <td><input type="color" id="naughty_color" value="<?php echo getS('naughty_color', '#FF0000'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'naughty_color', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Names Text Color:</td>
+                        <td><input type="color" id="text_color" value="<?php echo getS('text_color', '#FFFFFF'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'text_color', this.value);"></td>
                     </tr>
                 </table>
             </fieldset>
@@ -81,7 +93,6 @@ function getS($key, $default) {
                 <pre id="api_debug" style="background:#000; color:#0f0; padding:10px; height:120px; overflow:auto; font-size:11px; border:1px solid #333;">Raw data will appear here...</pre>
             </fieldset>
         </div>
-
     </div>
 </div>
 
@@ -107,25 +118,25 @@ function TestAPI() {
 }
 
 function UpdatePreview(data) {
-    // We cycle through both to show you what they look like
     let types = ['nice', 'naughty'];
     let current = 0;
     
-    // Preview toggle logic
     function toggle() {
         let type = types[current];
-        let color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
+        let h_color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
+        let n_color = $('#text_color').val();
+        let h_size = $('#header_font').val() + "px";
+        let n_size = $('#names_font').val() + "px";
         let limit = parseInt($('#name_limit').val());
         let names = data[type].slice(0, limit).join('\n');
         
-        $('#v_header').text(type + ' list').css('color', color);
-        $('#v_names').text(names ? names : '(No names found)');
+        $('#v_header').text(type + ' list').css({'color': h_color, 'font-size': h_size});
+        $('#v_names').text(names ? names : '(No names found)').css({'color': n_color, 'font-size': n_size});
         
         current = (current + 1) % 2;
     }
     
     toggle();
-    // Toggle every 3 seconds while on this page to test the look
     if(window.previewInterval) clearInterval(window.previewInterval);
     window.previewInterval = setInterval(toggle, 3000);
 }
