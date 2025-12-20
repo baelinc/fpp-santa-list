@@ -245,14 +245,20 @@ function UpdatePreviewLayout() {
 }
 
 function CheckServiceStatus() {
-    // Adding the Date ensures the URL is unique every time
-    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1&v=' + Date.now(), function(data) {
-        // Force data to be an object
-        let res = typeof data === 'string' ? JSON.parse(data) : data;
-        if(res.running) {
-            $('#service_status').text('RUNNING').css('background', '#28a745');
-        } else {
-            $('#service_status').text('STOPPED').css('background', '#dc3545');
+    $.ajax({
+        url: 'plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1',
+        type: 'POST', // Changed to POST to bypass cache
+        dataType: 'json',
+        success: function(data) {
+            // We strictly check for true/1
+            if (data && (data.running === true || data.running === 1 || data.running === "1")) {
+                $('#service_status').text('RUNNING').css('background', '#28a745');
+            } else {
+                $('#service_status').text('STOPPED').css('background', '#dc3545');
+            }
+        },
+        error: function() {
+            $('#service_status').text('UNKNOWN').css('background', '#555');
         }
     });
 }
@@ -357,6 +363,7 @@ $(document).ready(function() {
     setInterval(CheckServiceStatus, 5000);
 });
 </script>
+
 
 
 
