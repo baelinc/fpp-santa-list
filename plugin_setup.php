@@ -245,18 +245,17 @@ function UpdatePreviewLayout() {
 }
 
 function CheckServiceStatus() {
-    // Adding a timestamp (t=...) prevents the browser from caching the result
-    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1&t=' + new Date().getTime(), function(data) {
-        // Ensure data is parsed as JSON if it isn't already
-        let status = (typeof data === 'string') ? JSON.parse(data) : data;
-        
-        if(status.running) {
-            $('#service_status').text('RUNNING').css('background', '#28a745');
-        } else {
-            $('#service_status').text('STOPPED').css('background', '#dc3545');
+    $.ajax({
+        url: 'plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/get_status.php&nopage=1',
+        type: 'GET',
+        cache: false, // Prevents the "always running" ghost
+        success: function(data) {
+            if(data.running) {
+                $('#service_status').text('RUNNING').css('background', '#28a745');
+            } else {
+                $('#service_status').text('STOPPED').css('background', '#dc3545');
+            }
         }
-    }).fail(function() {
-        $('#service_status').text('ERROR').css('background', '#ff8c00');
     });
 }
 
@@ -360,4 +359,5 @@ $(document).ready(function() {
     setInterval(CheckServiceStatus, 5000);
 });
 </script>
+
 
