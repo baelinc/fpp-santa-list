@@ -1,74 +1,138 @@
 <?php
 include_once 'common.php';
 $pluginName = "fpp-santa-list";
-// Fetch saved settings
-$wp_url = isset($pluginSettings['wp_url']) ? $pluginSettings['wp_url'] : "";
+
+// Helper to get settings with defaults
+function getS($key, $default) {
+    global $pluginSettings;
+    return isset($pluginSettings[$key]) ? $pluginSettings[$key] : $default;
+}
 ?>
 
 <div id="santa_list" class="settings">
-    <div style="display: flex; gap: 20px;">
-        <div style="flex: 1;">
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        
+        <div style="flex: 1; min-width: 400px;">
             <fieldset>
-                <legend>Settings</legend>
-                <p>WP API URL: <input type="text" id="wp_url" size="40" value="<?php echo $wp_url; ?>" onchange="SetPluginSetting('fpp-santa-list', 'wp_url', this.value);"></p>
-                <button class="buttons" onclick="TestAPI();">🔍 Test API Connection</button>
-                <button class="buttons" onclick="StartSantaService();">🚀 Start Service</button>
+                <legend>🎅 Santa's Workshop Settings</legend>
+                <table cellspacing="5" cellpadding="5" style="width:100%;">
+                    <tr>
+                        <td>WP API URL:</td>
+                        <td><input type="text" id="wp_url" style="width:100%;" value="<?php echo getS('wp_url', ''); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'wp_url', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Sync Every (Sec):</td>
+                        <td><input type="number" id="sync_interval" value="<?php echo getS('sync_interval', '60'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'sync_interval', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Flip Speed (Sec):</td>
+                        <td><input type="number" id="flip_speed" value="<?php echo getS('flip_speed', '10'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'flip_speed', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Name Limit:</td>
+                        <td><input type="number" id="name_limit" value="<?php echo getS('name_limit', '6'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'name_limit', this.value);"></td>
+                    </tr>
+                </table>
             </fieldset>
 
             <fieldset style="margin-top:15px;">
-                <legend>Live API Data</legend>
-                <pre id="api_debug" style="background:#000; color:#0f0; padding:10px; height:150px; overflow:auto; font-size:11px;">Click "Test API" to pull data...</pre>
+                <legend>🎨 Appearance & Models</legend>
+                <table cellspacing="5" cellpadding="5" style="width:100%;">
+                    <tr>
+                        <td>Top Model:</td>
+                        <td><input type="text" id="header_model" value="<?php echo getS('header_model', 'Matrix_Header'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Bottom Model:</td>
+                        <td><input type="text" id="names_model" value="<?php echo getS('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Nice Color:</td>
+                        <td><input type="color" id="nice_color" value="<?php echo getS('nice_color', '#00FF00'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'nice_color', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Naughty Color:</td>
+                        <td><input type="color" id="naughty_color" value="<?php echo getS('naughty_color', '#FF0000'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'naughty_color', this.value);"></td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <div style="margin-top:20px;">
+                <button class="buttons" onclick="TestAPI();">🔍 Test API Connection</button>
+                <button class="buttons btn-success" onclick="StartSantaService();">🚀 Start Service</button>
+            </div>
+        </div>
+
+        <div style="flex: 1; min-width: 350px;">
+            <fieldset>
+                <legend>🖼️ Virtual Prop Preview</legend>
+                <div id="virtual_prop" style="background:#111; padding:30px; border-radius:10px; text-align:center; border: 8px solid #222;">
+                    <div id="v_header" style="background:#000; width:220px; height:45px; margin:0 auto 15px; border:2px solid #333; color:#0f0; display:flex; align-items:center; justify-content:center; font-family:Arial Black, Gadget, sans-serif; font-size:16px; text-transform:uppercase;">
+                        WAITING
+                    </div>
+                    <div id="v_names" style="background:#000; width:220px; height:140px; margin:0 auto; border:2px solid #333; color:#fff; padding:10px; font-family: 'Courier New', Courier, monospace; font-size:14px; text-align:left; white-space:pre; line-height:1.2;">
+(Test API to preview)
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset style="margin-top:15px;">
+                <legend>📡 API Console Output</legend>
+                <pre id="api_debug" style="background:#000; color:#0f0; padding:10px; height:120px; overflow:auto; font-size:11px; border:1px solid #333;">Raw data will appear here...</pre>
             </fieldset>
         </div>
 
-        <div style="flex: 1;">
-            <fieldset>
-                <legend>Virtual Prop Preview</legend>
-                <div id="virtual_prop" style="background:#222; padding:20px; border-radius:10px; text-align:center; border: 5px solid #333;">
-                    <div id="v_header" style="background:#000; width:200px; height:40px; margin:0 auto 10px; border:1px solid #444; color:#0f0; display:flex; align-items:center; justify-content:center; font-family:Arial; font-weight:bold;">
-                        OFF
-                    </div>
-                    <div id="v_names" style="background:#000; width:200px; height:120px; margin:0 auto; border:1px solid #444; color:#fff; padding:5px; font-family:monospace; font-size:12px; text-align:left; white-space:pre;">
-                        (Waiting for data)
-                    </div>
-                </div>
-                <p style="font-size:10px; color:#666; text-align:center;">Note: This is a simulation of your Pixel Overlay Models.</p>
-            </fieldset>
-        </div>
     </div>
 </div>
 
 <script>
 function TestAPI() {
     var url = $('#wp_url').val();
-    $('#api_debug').text('Pinging Santa...');
+    if(!url) { alert('Please enter your WordPress API URL first!'); return; }
+    
+    $('#api_debug').text('Contacting the North Pole...');
     
     $.ajax({
         url: url,
         type: 'GET',
+        dataType: 'json',
         success: function(data) {
             $('#api_debug').text(JSON.stringify(data, null, 4));
             UpdatePreview(data);
         },
-        error: function() {
-            $('#api_debug').text('ERROR: Could not reach WordPress API. Check your URL or Public settings.');
+        error: function(xhr) {
+            $('#api_debug').text('ERROR: API unreachable.\nStatus: ' + xhr.status + '\nCheck if your WordPress site is public and URL is correct.');
         }
     });
 }
 
 function UpdatePreview(data) {
-    // Logic to simulate what the worker script does
-    let type = (Math.random() > 0.5) ? 'nice' : 'naughty'; // Randomly pick one to show for the test
-    let color = (type === 'nice') ? '#00FF00' : '#FF0000';
-    let names = data[type].slice(0, 6).join('\n');
-
-    $('#v_header').text(type.toUpperCase() + ' LIST').css('color', color);
-    $('#v_names').text(names);
+    // We cycle through both to show you what they look like
+    let types = ['nice', 'naughty'];
+    let current = 0;
+    
+    // Preview toggle logic
+    function toggle() {
+        let type = types[current];
+        let color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
+        let limit = parseInt($('#name_limit').val());
+        let names = data[type].slice(0, limit).join('\n');
+        
+        $('#v_header').text(type + ' list').css('color', color);
+        $('#v_names').text(names ? names : '(No names found)');
+        
+        current = (current + 1) % 2;
+    }
+    
+    toggle();
+    // Toggle every 3 seconds while on this page to test the look
+    if(window.previewInterval) clearInterval(window.previewInterval);
+    window.previewInterval = setInterval(toggle, 3000);
 }
 
 function StartSantaService() {
-    $.get('plugin.php?plugin=fpp-santa-list&page=scripts/start_service.php&nopage=1', function() {
-        $.jGrowl("Santa Service Started!");
+    $.get('plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/start_service.php&nopage=1', function() {
+        $.jGrowl("Santa Worker Process Started!", { theme: 'success' });
     });
 }
 </script>
