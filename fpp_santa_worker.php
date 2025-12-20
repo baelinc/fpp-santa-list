@@ -1,7 +1,7 @@
 <?php
 /**
  * SANTA LIST ROBUST WORKER
- * Handles: Alignment, Dynamic Scaling, Colors, and Error Recovery
+ * Handles: Alignment, Dynamic Scaling, Colors, Custom Text, and Error Recovery
  */
 
 $pluginName = "fpp-santa-list";
@@ -26,20 +26,24 @@ while(true) {
     }
 
     // Extract variables with robust defaults
-    $wp_url        = $settings['wp_url'] ?? "";
-    $sync_interval = (int)($settings['sync_interval'] ?? 60);
-    $flip_speed    = (int)($settings['flip_speed'] ?? 10);
-    $limit         = (int)($settings['name_limit'] ?? 6);
-    $h_model       = $settings['header_model'] ?? 'Matrix_Header';
-    $n_model       = $settings['names_model'] ?? 'Matrix_Names';
-    $h_font        = (int)($settings['header_font'] ?? 18);
-    $n_font        = (int)($settings['names_font'] ?? 12);
-    $nice_color    = $settings['nice_color'] ?? '#00FF00';
-    $naught_color  = $settings['naughty_color'] ?? '#FF0000';
-    $text_color    = $settings['text_color'] ?? '#FFFFFF';
+    $wp_url         = $settings['wp_url'] ?? "";
+    $sync_interval  = (int)($settings['sync_interval'] ?? 60);
+    $flip_speed     = (int)($settings['flip_speed'] ?? 10);
+    $limit          = (int)($settings['name_limit'] ?? 6);
+    $h_model        = $settings['header_model'] ?? 'Matrix_Header';
+    $n_model        = $settings['names_model'] ?? 'Matrix_Names';
+    $h_font         = (int)($settings['header_font'] ?? 18);
+    $n_font         = (int)($settings['names_font'] ?? 12);
+    $nice_color     = $settings['nice_color'] ?? '#00FF00';
+    $naught_color   = $settings['naughty_color'] ?? '#FF0000';
+    $text_color     = $settings['text_color'] ?? '#FFFFFF';
+    
+    // Custom Header Labels
+    $nice_label     = $settings['nice_text'] ?? 'NICE LIST';
+    $naught_label   = $settings['naughty_text'] ?? 'NAUGHTY LIST';
     
     // Alignment logic: fppmm uses Center, TopLeft, TopRight, etc.
-    $alignSetting  = $settings['text_align'] ?? 'Center';
+    $alignSetting   = $settings['text_align'] ?? 'Center';
     $h_pos = ($alignSetting == "Center") ? "Center" : $alignSetting;
     $n_pos = ($alignSetting == "Center") ? "Center" : "Top" . $alignSetting;
 
@@ -54,20 +58,29 @@ while(true) {
         
         foreach (['nice', 'naughty'] as $type) {
             $names = array_slice($data[$type] ?? [], 0, $limit);
-            $current_h_color = ($type == 'nice') ? $nice_color : $naught_color;
+            
+            // Apply custom colors and custom text labels
+            if ($type == 'nice') {
+                $current_h_color = $nice_color;
+                $header_text = $nice_label;
+            } else {
+                $current_h_color = $naught_color;
+                $header_text = $naught_label;
+            }
             
             // Update Header (Top Screen)
-            $header_text = strtoupper($type) . " LIST";
-            exec("fppmm -m $h_model -o on -c '$current_h_color' -s $h_font -p $h_pos -t '$header_text'");
+            // escapeshellarg ensures custom text with spaces/quotes doesn't break the command
+            $h_cmd = "fppmm -m $h_model -o on -c '$current_h_color' -s $h_font -p $h_pos -t " . escapeshellarg($header_text);
+            exec($h_cmd);
 
             // Update Names (Bottom Screen)
-            // Use double quotes for the shell command to handle names with spaces/apostrophes
             $names_block = implode("\n", $names);
             if(empty($names_block)) $names_block = "No Names Found";
             
-            exec("fppmm -m $n_model -o on -c '$text_color' -s $n_font -p $n_pos -t \"$names_block\"");
+            $n_cmd = "fppmm -m $n_model -o on -c '$text_color' -s $n_font -p $n_pos -t " . escapeshellarg($names_block);
+            exec($n_cmd);
 
-            log_msg("Displayed $type list. Next flip in $flip_speed sec.");
+            log_msg("Displayed $type list ($header_text). Next flip in $flip_speed sec.");
             sleep($flip_speed);
         }
     } else {
@@ -77,6 +90,7 @@ while(true) {
     }
 
     // 3. CALCULATE SMART SLEEP
+    // Sleep remaining time before next API check
     $napTime = max(5, $sync_interval - ($flip_speed * 2));
     sleep($napTime);
 }
