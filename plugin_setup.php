@@ -63,12 +63,12 @@ function getS($key, $default) {
                 <legend>🎨 Appearance & Alignment</legend>
                 <table cellspacing="5" cellpadding="5" style="width:100%;">
                     <tr>
-                        <td>Top Model:</td>
-                        <td><input type="text" id="header_model" value="<?php echo getS('header_model', 'Matrix_Header'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);"></td>
+                        <td>Nice List Text:</td>
+                        <td><input type="text" id="nice_text" value="<?php echo getS('nice_text', 'NICE LIST'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'nice_text', this.value);"></td>
                     </tr>
                     <tr>
-                        <td>Bottom Model:</td>
-                        <td><input type="text" id="names_model" value="<?php echo getS('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></td>
+                        <td>Naughty List Text:</td>
+                        <td><input type="text" id="naughty_text" value="<?php echo getS('naughty_text', 'NAUGHTY LIST'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'naughty_text', this.value);"></td>
                     </tr>
                     <tr>
                         <td>Text Alignment:</td>
@@ -79,6 +79,14 @@ function getS($key, $default) {
                                 <option value="Right" <?php echo (getS('text_align', 'Center') == 'Right') ? 'selected' : ''; ?>>Right</option>
                             </select>
                         </td>
+                    </tr>
+                    <tr>
+                        <td>Top Model:</td>
+                        <td><input type="text" id="header_model" value="<?php echo getS('header_model', 'Matrix_Header'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'header_model', this.value);"></td>
+                    </tr>
+                    <tr>
+                        <td>Bottom Model:</td>
+                        <td><input type="text" id="names_model" value="<?php echo getS('names_model', 'Matrix_Names'); ?>" onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'names_model', this.value);"></td>
                     </tr>
                     <tr>
                         <td>Header Font Size:</td>
@@ -143,34 +151,25 @@ function getS($key, $default) {
 // --- LAYOUT & PREVIEW LOGIC ---
 
 function UpdatePreviewLayout() {
-    // Top Panel Dimensions
     let hw = parseInt($('#h_width').val()) || 64;
     let hh = parseInt($('#h_height').val()) || 32;
-    
-    // Bottom Panel Dimensions
     let nw = parseInt($('#n_width').val()) || 64;
     let nh = parseInt($('#n_height').val()) || 64;
-
     let align = $('#text_align').val().toLowerCase();
-    
-    // Scale multiplier to make it visible on web UI
     let scale = 3; 
 
-    // Apply Dimensions to Top
     $('#v_header').css({
         'width': (hw * scale) + 'px',
         'height': (hh * scale) + 'px',
         'text-align': align
     });
 
-    // Apply Dimensions to Bottom
     $('#v_names').css({
         'width': (nw * scale) + 'px',
         'height': (nh * scale) + 'px',
         'text-align': align
     });
 
-    // Handle Flex Alignment for the Header (Vertical Center)
     let flexAlign = (align === 'center') ? 'center' : (align === 'left' ? 'flex-start' : 'flex-end');
     $('#v_header').css('justify-content', flexAlign);
 }
@@ -206,9 +205,7 @@ function StopSantaService() {
 function TestAPI() {
     var url = $('#wp_url').val();
     if(!url) { alert('Please enter your WordPress API URL first!'); return; }
-    
     $('#api_debug').text('FPP is contacting your website...');
-    
     $.ajax({
         url: 'plugin.php?plugin=<?php echo $pluginName; ?>&page=scripts/test_proxy.php&nopage=1&test_url=' + encodeURIComponent(url),
         type: 'GET',
@@ -230,6 +227,9 @@ function UpdatePreview(data) {
     function toggle() {
         UpdatePreviewLayout();
         let type = types[current];
+        
+        // Use custom text from inputs
+        let h_text = (type === 'nice') ? $('#nice_text').val() : $('#naughty_text').val();
         let h_color = (type === 'nice') ? $('#nice_color').val() : $('#naughty_color').val();
         let n_color = $('#text_color').val();
         
@@ -240,7 +240,7 @@ function UpdatePreview(data) {
         let namesList = data[type] ? data[type].slice(0, limit) : [];
         let names = namesList.join('\n');
         
-        $('#v_header').text(type + ' list').css({'color': h_color, 'font-size': h_size});
+        $('#v_header').text(h_text).css({'color': h_color, 'font-size': h_size});
         $('#v_names').text(names ? names : '(No names found)').css({'color': n_color, 'font-size': n_size});
         
         current = (current + 1) % 2;
