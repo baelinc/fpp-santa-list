@@ -27,11 +27,12 @@ function getS($key, $default) {
                     </tr>
                     <tr>
                         <td>API Token:</td>
-                        <td><input type="password" id="api_token" style="width:100%;"
-                            value="<?php echo getS('api_token', ''); ?>"
-                            placeholder="Bearer token from WordPress admin"
-                            onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'api_token', this.value);">
-                            <small style="color:#aaa;">From WordPress → Santa's List → API &amp; Security</small>
+                        <td>
+                            <input type="text" id="api_token" style="width:100%; font-family:monospace;"
+                                value="<?php echo getS('api_token', ''); ?>"
+                                placeholder="Paste token from WordPress → Santa's List → API &amp; Security"
+                                onchange="SetPluginSetting('<?php echo $pluginName; ?>', 'api_token', this.value);">
+                            <small style="color:#aaa;">Paste exactly as shown in WordPress — no spaces</small>
                         </td>
                     </tr>
                     <tr>

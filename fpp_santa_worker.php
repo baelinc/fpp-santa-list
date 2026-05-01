@@ -134,7 +134,7 @@ while (true) {
         sleep(10);
         continue;
     }
-    $settings = parse_ini_file($settingsFile);
+    $settings = parse_ini_file($settingsFile, false, INI_SCANNER_RAW);
 
     $wp_url        = $settings['wp_url']        ?? '';
     $api_token     = $settings['api_token']      ?? '';
