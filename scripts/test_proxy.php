@@ -1,19 +1,36 @@
 <?php
 // scripts/test_proxy.php
-$url = $_GET['test_url'];
+// Proxies the WordPress API test from FPP so we avoid CORS issues.
+// Now correctly sends the Bearer token in the Authorization header.
 
-// Fetch the data using PHP (Server-to-Server)
-$options = array(
-    'http' => array(
-        'header'  => "Content-type: application/json\r\n",
+$url   = $_GET['test_url']   ?? '';
+$token = $_GET['test_token'] ?? '';
+
+if (empty($url)) {
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'No URL provided']);
+    exit;
+}
+
+$context = stream_context_create([
+    'http' => [
         'method'  => 'GET',
-        'timeout' => 5
-    )
-);
-$context  = stream_context_create($options);
-$result = file_get_contents($url, false, $context);
+        'header'  => "Authorization: Bearer " . $token . "\r\n" .
+                     "Accept: application/json\r\n",
+        'timeout' => 8,
+        'ignore_errors' => true,
+    ],
+    'ssl' => [
+        'verify_peer'      => false,
+        'verify_peer_name' => false,
+    ],
+]);
 
-// Send the result back to our FPP UI
+$result = @file_get_contents($url, false, $context);
+
 header('Content-Type: application/json');
-echo $result;
-?>
+if ($result === false) {
+    echo json_encode(['error' => 'Could not reach ' . $url]);
+} else {
+    echo $result;
+}
