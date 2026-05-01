@@ -1,7 +1,7 @@
 <?php
 // scripts/test_proxy.php
-// Uses curl (not file_get_contents) so the Bearer token survives
-// the HTTP->HTTPS redirect that IONOS hosting performs.
+// IONOS strips ALL Authorization headers before they reach PHP.
+// Token is sent as ?token= query parameter instead.
 
 $url   = $_GET['test_url']   ?? '';
 $token = $_GET['test_token'] ?? '';
@@ -13,16 +13,16 @@ if (empty($url)) {
     exit;
 }
 
-$ch = curl_init($url);
+// Append token as query parameter — works on all hosts including IONOS
+$sep = (strpos($url, '?') !== false) ? '&' : '?';
+$url_with_token = $url . $sep . 'token=' . urlencode($token);
+
+$ch = curl_init($url_with_token);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT        => 10,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_MAXREDIRS      => 3,
-    CURLOPT_HTTPHEADER     => [
-        'Authorization: Bearer ' . $token,
-        'Accept: application/json',
-    ],
     CURLOPT_SSL_VERIFYPEER => false,
     CURLOPT_SSL_VERIFYHOST => false,
 ]);
