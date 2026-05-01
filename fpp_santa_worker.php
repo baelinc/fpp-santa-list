@@ -51,8 +51,12 @@ function hslToHex($h, $s, $l) {
  */
 function fetchNames($wp_url, $api_token, $since = null) {
     $url = rtrim($wp_url, '/');
+
+    // IONOS strips ALL Authorization headers before they reach PHP.
+    // Send token as a query parameter instead — cannot be stripped.
+    $url .= '?token=' . urlencode($api_token);
     if ($since) {
-        $url .= (strpos($url, '?') !== false ? '&' : '?') . 'since=' . urlencode($since);
+        $url .= '&since=' . urlencode($since);
     }
 
     $ch = curl_init($url);
@@ -61,10 +65,6 @@ function fetchNames($wp_url, $api_token, $since = null) {
         CURLOPT_TIMEOUT        => 10,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS      => 3,
-        CURLOPT_HTTPHEADER     => [
-            'Authorization: Bearer ' . $api_token,
-            'Accept: application/json',
-        ],
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
     ]);
