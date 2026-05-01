@@ -5,7 +5,7 @@ $pluginName = "fpp-santa-list";
 $settingsFile = "/home/fpp/media/config/plugin." . $pluginName;
 
 if (file_exists($settingsFile)) {
-    $pluginSettings = parse_ini_file($settingsFile);
+    $pluginSettings = parse_ini_file($settingsFile, false, INI_SCANNER_RAW);
 }
 
 // 1. Kill the process (Try pkill first, then killall)

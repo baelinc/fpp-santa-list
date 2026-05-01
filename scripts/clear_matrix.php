@@ -4,7 +4,7 @@ $pluginName = "fpp-santa-list";
 include_once "/opt/fpp/www/common.php";
 
 $settingsFile = "/home/fpp/media/config/plugin." . $pluginName;
-$settings = parse_ini_file($settingsFile);
+$settings = parse_ini_file($settingsFile, false, INI_SCANNER_RAW);
 
 $h_model = $settings['header_model'] ?? 'Matrix_Header';
 $n_model = $settings['names_model'] ?? 'Matrix_Names';
